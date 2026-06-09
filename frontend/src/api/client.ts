@@ -21,6 +21,13 @@ export const connect = (host: string, port?: number, username?: string, password
 export const disconnect = () =>
   api.delete<ApiResponse>('/connect');
 
+// Auth
+export const verifyPassword = (password: string) =>
+  api.post<ApiResponse>('/auth/verify', { password });
+
+export const logout = () =>
+  api.post<ApiResponse>('/auth/logout');
+
 export const getStatus = () =>
   api.get<ApiResponse<ConnectionStatus>>('/status');
 

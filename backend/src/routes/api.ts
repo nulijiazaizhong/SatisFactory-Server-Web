@@ -1,11 +1,34 @@
 import { Router, Request, Response } from 'express';
 import { serverService } from '../services/serverService.js';
-import { MinimumPrivilegeLevel } from 'satisfactory-dedicated-server-api';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const { MinimumPrivilegeLevel } = require('satisfactory-dedicated-server-sdk');
 import type { ConnectRequest, CommandRequest } from '../types.js';
 
 const router = Router();
 
-// POST /api/connect - Connect to a server
+// POST /api/auth/verify - Verify web UI password
+router.post('/auth/verify', (req: Request, res: Response) => {
+  const { password } = req.body;
+
+  if (!password) {
+    return res.status(400).json({ success: false, error: 'MISSING_PASSWORD', message: 'Password is required' });
+  }
+
+  const isValid = serverService.verifyWebUIPassword(password);
+  if (!isValid) {
+    return res.status(401).json({ success: false, error: 'INVALID_PASSWORD', message: 'Invalid password' });
+  }
+
+  return res.json({ success: true, data: { message: 'Authentication successful' } });
+});
+
+// POST /api/auth/logout - Clear web UI auth session (client-side action, server just acknowledges)
+router.post('/auth/logout', (_req: Request, res: Response) => {
+  return res.json({ success: true, data: { message: 'Logged out successfully' } });
+});
+
+// POST /api/connect - Connect to a server (auto-connect from config on startup)
 router.post('/connect', async (req: Request, res: Response) => {
   const { host, port, username, password, skipSSLVerification } = req.body as ConnectRequest;
 

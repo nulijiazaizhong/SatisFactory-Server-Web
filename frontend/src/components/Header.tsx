@@ -1,4 +1,5 @@
-import { RefreshCw, LogOut, Wifi, Lock, Unlock } from 'lucide-react';
+import { useState } from 'react';
+import { RefreshCw, LogOut, Wifi, Lock, Unlock, Loader2 } from 'lucide-react';
 import { useConnection } from '../contexts/ConnectionContext';
 
 interface HeaderProps {
@@ -6,7 +7,22 @@ interface HeaderProps {
 }
 
 export default function Header({ onConnectClick }: HeaderProps) {
-  const { isConnected, isFullAccess, connectionInfo, disconnect, checkStatus } = useConnection();
+  const { isConnected, isFullAccess, connectionInfo, disconnect, checkStatus, authenticate, lock, error, isConnecting } = useConnection();
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+
+  const handleAuthenticate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!password.trim()) return;
+    const success = await authenticate(password);
+    if (success) {
+      setPassword('');
+    }
+  };
+
+  const handleLock = async () => {
+    await lock();
+  };
 
   return (
     <header className="app-header">
@@ -46,17 +62,74 @@ export default function Header({ onConnectClick }: HeaderProps) {
                 <span>{connectionInfo?.host}:{connectionInfo?.port}</span>
               </span>
             </div>
-            <div className="flex items-center gap-xs" style={{
-              padding: '4px 8px',
-              borderRadius: 'var(--radius-sm)',
-              backgroundColor: isFullAccess ? 'rgba(63, 185, 80, 0.15)' : 'rgba(210, 153, 34, 0.15)',
-              color: isFullAccess ? 'var(--status-online)' : 'var(--status-warning)',
-              fontSize: '0.7rem',
-              fontWeight: 600
-            }}>
-              {isFullAccess ? <Unlock size={12} /> : <Lock size={12} />}
-              {isFullAccess ? '完整权限' : '只读'}
-            </div>
+
+            {isFullAccess ? (
+              // Authenticated - show unlock badge with lock button
+              <div className="flex items-center gap-xs">
+                <div className="flex items-center gap-xs" style={{
+                  padding: '4px 8px',
+                  borderRadius: 'var(--radius-sm)',
+                  backgroundColor: 'rgba(63, 185, 80, 0.15)',
+                  color: 'var(--status-online)',
+                  fontSize: '0.7rem',
+                  fontWeight: 600
+                }}>
+                  <Unlock size={12} />
+                  完整权限
+                </div>
+                <button
+                  onClick={handleLock}
+                  className="btn btn--secondary btn--sm"
+                  title="锁定管理功能"
+                >
+                  <Lock size={14} />
+                  锁定
+                </button>
+              </div>
+            ) : (
+              // Not authenticated - show password input
+              <form onSubmit={handleAuthenticate} className="flex items-center gap-xs">
+                <div className="flex items-center gap-xs" style={{
+                  padding: '4px 8px',
+                  borderRadius: 'var(--radius-sm)',
+                  backgroundColor: 'rgba(210, 153, 34, 0.15)',
+                  color: 'var(--status-warning)',
+                  fontSize: '0.7rem',
+                  fontWeight: 600
+                }}>
+                  <Lock size={12} />
+                  只读
+                </div>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  className="form-input form-input--sm"
+                  style={{ width: '120px' }}
+                  placeholder="管理密码"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  disabled={isConnecting}
+                />
+                <button
+                  type="submit"
+                  className="btn btn--primary btn--sm"
+                  disabled={isConnecting || !password.trim()}
+                  title="解锁管理功能"
+                >
+                  {isConnecting ? (
+                    <Loader2 size={14} className="animate-spin" />
+                  ) : (
+                    <Unlock size={14} />
+                  )}
+                </button>
+              </form>
+            )}
+
+            {error && !isFullAccess && (
+              <span className="text-sm" style={{ color: 'var(--status-error)', fontSize: '0.75rem' }}>
+                {error}
+              </span>
+            )}
+
             <button
               onClick={disconnect}
               className="btn btn--secondary btn--sm"

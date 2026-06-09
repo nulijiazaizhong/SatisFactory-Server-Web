@@ -5,11 +5,11 @@ import * as api from '../api/client';
 interface ConnectionContextType {
   isConnected: boolean;
   isConnecting: boolean;
-  isFullAccess: boolean; // true if password was provided (passwordLogin), false if only passwordless
+  isFullAccess: boolean; // true if web UI password was verified
   connectionInfo: ConnectionStatus | null;
   error: string | null;
-  connect: (host: string, port?: number, username?: string, password?: string) => Promise<boolean>;
-  disconnect: () => Promise<void>;
+  authenticate: (password: string) => Promise<boolean>;
+  lock: () => Promise<void>;
   checkStatus: () => Promise<void>;
 }
 
@@ -35,30 +35,21 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const connect = useCallback(async (
-    host: string,
-    port?: number,
-    username?: string,
-    password?: string
-  ): Promise<boolean> => {
+  const authenticate = useCallback(async (password: string): Promise<boolean> => {
     setIsConnecting(true);
     setError(null);
 
     try {
-      // If password is provided, use password login (full access)
-      // If no password, use passwordless login (limited access)
-      const response = await api.connect(host, port, username, password, true);
+      const response = await api.verifyPassword(password);
       if (response.data.success) {
-        setIsConnected(true);
-        setIsFullAccess(!!password); // Full access only if password was provided
-        setConnectionInfo({ isConnected: true, host, port });
+        setIsFullAccess(true);
         return true;
       } else {
-        setError(response.data.message || 'Connection failed');
+        setError(response.data.message || 'Authentication failed');
         return false;
       }
     } catch (err: any) {
-      const message = err.response?.data?.message || err.message || 'Connection failed';
+      const message = err.response?.data?.message || err.message || 'Authentication failed';
       setError(message);
       return false;
     } finally {
@@ -66,15 +57,13 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const disconnect = useCallback(async () => {
+  const lock = useCallback(async () => {
     try {
-      await api.disconnect();
+      await api.logout();
     } catch {
-      // Ignore disconnect errors
+      // Ignore logout errors
     } finally {
-      setIsConnected(false);
       setIsFullAccess(false);
-      setConnectionInfo(null);
       setError(null);
     }
   }, []);
@@ -91,8 +80,8 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
       isFullAccess,
       connectionInfo,
       error,
-      connect,
-      disconnect,
+      authenticate,
+      lock,
       checkStatus
     }}>
       {children}

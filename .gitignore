@@ -42,6 +42,9 @@ yarn-error.log*
 # Certificate files (generated at runtime)
 certs/
 
+# Server config (contains sensitive password)
+backend/config.json
+
 # Temporary debug files
 *.tmp
 *.temp

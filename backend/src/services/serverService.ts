@@ -1,15 +1,67 @@
-import { SatisfactoryApi, MinimumPrivilegeLevel } from 'satisfactory-dedicated-server-api';
-import { AdvancedGameSettings, ServerOptions } from 'satisfactory-dedicated-server-api';
+import { createRequire } from 'module';
+import * as fs from 'fs';
+import * as path from 'path';
+
+const require = createRequire(import.meta.url);
+const { SatisfactoryApi, MinimumPrivilegeLevel, AdvancedGameSettings, ServerOptions } = require('satisfactory-dedicated-server-sdk');
+
+export interface ServerConfig {
+  server: {
+    host: string;
+    port: number;
+    password?: string;
+  };
+  webUI: {
+    password: string;
+  };
+}
 
 export class ServerService {
   private api: SatisfactoryApi | null = null;
   private isConnected = false;
   private connectionInfo: { host: string; port: number } | null = null;
+  private config: ServerConfig | null = null;
+
+  loadConfig(configPath: string): { success: boolean; message: string; config?: ServerConfig } {
+    try {
+      const resolvedPath = path.resolve(configPath);
+      if (!fs.existsSync(resolvedPath)) {
+        return { success: false, message: `Config file not found: ${resolvedPath}` };
+      }
+      const content = fs.readFileSync(resolvedPath, 'utf-8');
+      const config = JSON.parse(content) as ServerConfig;
+
+      if (!config.server?.host || !config.server?.port) {
+        return { success: false, message: 'Invalid config: missing server.host or server.port' };
+      }
+      if (!config.webUI?.password) {
+        return { success: false, message: 'Invalid config: missing webUI.password' };
+      }
+
+      this.config = config;
+      return { success: true, message: 'Config loaded successfully', config };
+    } catch (error: any) {
+      return { success: false, message: error.message || 'Failed to load config' };
+    }
+  }
+
+  getConfig(): ServerConfig | null {
+    return this.config;
+  }
+
+  async autoConnect(): Promise<{ success: boolean; message: string }> {
+    if (!this.config) {
+      return { success: false, message: 'Config not loaded' };
+    }
+
+    const { host, port } = this.config.server;
+    return this.connect(host, port, { skipSSLVerification: true });
+  }
 
   async connect(
     host: string,
     port: number = 7777,
-    options?: { skipSSLVerification?: boolean }
+    options?: { skipSSLVerification?: boolean; username?: string }
   ): Promise<{ success: boolean; message: string }> {
     try {
       this.api = new SatisfactoryApi(host, port, {
@@ -52,6 +104,17 @@ export class ServerService {
     } catch (error: any) {
       return { success: false, message: error.message || 'Login failed' };
     }
+  }
+
+  verifyWebUIPassword(password: string): boolean {
+    if (!this.config) {
+      return false;
+    }
+    return this.config.webUI.password === password;
+  }
+
+  isWebUIPasswordSet(): boolean {
+    return !!this.config?.webUI?.password;
   }
 
   async disconnect(): Promise<void> {
