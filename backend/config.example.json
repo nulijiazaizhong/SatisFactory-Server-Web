@@ -5,6 +5,9 @@
     "password": "server-password"
   },
   "webUI": {
-    "password": "your-web-ui-password"
+    "password": "web-ui-password"
   }
 }
+
+<!-- 推荐使用环境变量部署: -->
+<!-- SERVER_HOST, SERVER_PORT, SERVER_PASSWORD, WEBUI_PASSWORD -->

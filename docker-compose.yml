@@ -1,0 +1,15 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - CORS_ORIGIN=*
+      - SERVER_HOST=192.168.1.100
+      - SERVER_PORT=7777
+      - SERVER_PASSWORD=your-server-password
+      - WEBUI_PASSWORD=your-web-ui-password
+    restart: unless-stopped

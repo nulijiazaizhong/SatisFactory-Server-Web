@@ -3,7 +3,10 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 const require = createRequire(import.meta.url);
-const { SatisfactoryApi, MinimumPrivilegeLevel, AdvancedGameSettings, ServerOptions } = require('satisfactory-dedicated-server-sdk');
+const SatisfactoryApi = require('satisfactory-dedicated-server-sdk').SatisfactoryApi;
+const MinimumPrivilegeLevel = require('satisfactory-dedicated-server-sdk').MinimumPrivilegeLevel;
+const AdvancedGameSettings = require('satisfactory-dedicated-server-sdk').AdvancedGameSettings;
+const ServerOptions = require('satisfactory-dedicated-server-sdk').ServerOptions;
 
 export interface ServerConfig {
   server: {
@@ -17,12 +20,36 @@ export interface ServerConfig {
 }
 
 export class ServerService {
-  private api: SatisfactoryApi | null = null;
+  private api: any = null;
   private isConnected = false;
   private connectionInfo: { host: string; port: number } | null = null;
   private config: ServerConfig | null = null;
 
-  loadConfig(configPath: string): { success: boolean; message: string; config?: ServerConfig } {
+  loadConfig(): { success: boolean; message: string } {
+    try {
+      const host = process.env.SERVER_HOST;
+      const port = parseInt(process.env.SERVER_PORT || '7777');
+      const serverPassword = process.env.SERVER_PASSWORD;
+      const webUIPassword = process.env.WEBUI_PASSWORD;
+
+      if (!host) {
+        return { success: false, message: 'Missing SERVER_HOST environment variable' };
+      }
+      if (!webUIPassword) {
+        return { success: false, message: 'Missing WEBUI_PASSWORD environment variable' };
+      }
+
+      this.config = {
+        server: { host, port, password: serverPassword },
+        webUI: { password: webUIPassword }
+      };
+      return { success: true, message: 'Config loaded from environment' };
+    } catch (error: any) {
+      return { success: false, message: error.message || 'Failed to load config' };
+    }
+  }
+
+  loadConfigFromFile(configPath: string): { success: boolean; message: string; config?: ServerConfig } {
     try {
       const resolvedPath = path.resolve(configPath);
       if (!fs.existsSync(resolvedPath)) {
@@ -87,7 +114,7 @@ export class ServerService {
   }
 
   async login(
-    minimumPrivilegeLevel: MinimumPrivilegeLevel,
+    minimumPrivilegeLevel: any,
     password?: string
   ): Promise<{ success: boolean; message: string }> {
     if (!this.api) {
@@ -170,7 +197,7 @@ export class ServerService {
     }
   }
 
-  async applyServerOptions(options: ServerOptions): Promise<{ success: boolean; message?: string }> {
+  async applyServerOptions(options: any): Promise<{ success: boolean; message?: string }> {
     if (!this.api) {
       return { success: false, message: 'Not connected' };
     }
@@ -196,7 +223,7 @@ export class ServerService {
     }
   }
 
-  async applyAdvancedGameSettings(settings: AdvancedGameSettings): Promise<{ success: boolean; message?: string }> {
+  async applyAdvancedGameSettings(settings: any): Promise<{ success: boolean; message?: string }> {
     if (!this.api) {
       return { success: false, message: 'Not connected' };
     }

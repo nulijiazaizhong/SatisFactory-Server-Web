@@ -9,7 +9,6 @@ interface HeaderProps {
 export default function Header({ onConnectClick }: HeaderProps) {
   const { isConnected, isFullAccess, connectionInfo, disconnect, checkStatus, authenticate, lock, error, isConnecting } = useConnection();
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
 
   const handleAuthenticate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,7 +100,7 @@ export default function Header({ onConnectClick }: HeaderProps) {
                   只读
                 </div>
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type="password"
                   className="form-input form-input--sm"
                   style={{ width: '120px' }}
                   placeholder="管理密码"

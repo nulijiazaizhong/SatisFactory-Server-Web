@@ -10,6 +10,7 @@ interface ConnectionContextType {
   error: string | null;
   authenticate: (password: string) => Promise<boolean>;
   lock: () => Promise<void>;
+  disconnect: () => Promise<void>;
   checkStatus: () => Promise<void>;
 }
 
@@ -68,6 +69,19 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const disconnect = useCallback(async () => {
+    try {
+      await api.disconnect();
+    } catch {
+      // Ignore disconnect errors
+    } finally {
+      setIsConnected(false);
+      setIsFullAccess(false);
+      setConnectionInfo(null);
+      setError(null);
+    }
+  }, []);
+
   // Check status on mount
   useEffect(() => {
     checkStatus();
@@ -82,6 +96,7 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
       error,
       authenticate,
       lock,
+      disconnect,
       checkStatus
     }}>
       {children}

@@ -1,0 +1,11 @@
+node_modules
+*.log
+.git
+.gitignore
+*.md
+.vscode
+.idea
+*.tsbuildinfo
+dist
+build
+.DS_Store
